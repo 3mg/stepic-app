@@ -1,0 +1,12 @@
+.course-thumbnail {
+    $course_thumbnail_width: 80px;
+    display: block;
+    width: $course_thumbnail_width;
+    img {
+        max-width: $course_thumbnail_width;
+    }
+}
+
+a {
+    cursor: pointer;
+}

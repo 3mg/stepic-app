@@ -4,6 +4,18 @@
         <div class="row">
             <div class="col-md-8">
                 <!--<pre>{{ courses | json }}</pre>-->
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <h4>Urgent workload</h4>
+                        <p>{{ workload.urgent[0] }}{{ workload.urgent[0] == workload.urgent[1] ? '' : ' – ' + workload.urgent[1] }} hours per week</p>
+                    </div>
+                    <div class="col-md-6">
+                        <h4>Full workload</h4>
+                        <p>{{ workload.all[0] }}{{ workload.all[0] == workload.all[1] ? '' : ' – ' + workload.all[1] }} hours per week</p>
+                    </div>
+                </div>
+                
                 <ul class="media-list">
                     <li class="media" ng-repeat="course in $ctrl.getCourses() track by $index">
                         <div class="media-left">

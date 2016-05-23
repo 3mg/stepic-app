@@ -143,8 +143,11 @@
           
           var capitalize = (s) => s.charAt(0).toUpperCase() + s.slice(1);
           
-          let load = (list, i, promises) => {
-            if (i >= list.length) return;
+          let load = (list, i, promises, onComplete) => {
+            if (i >= list.length) {
+              onComplete();
+              return;
+            }
             
             var 
               entityName = list[i][0], 
@@ -165,19 +168,25 @@
                 nextPromises.push(promise);
               });
               
-              load(list, i + 1, nextPromises);
+              load(list, i + 1, nextPromises, onComplete);
             }, function() {
               console.log(arguments);
             });
           };
           
-          load([['sections', 'units', 'units'], ['units', 'lesson', 'lessons']/*, ['lessons', 'steps', 'steps']*/], 0, promises);
+          load([['sections', 'units', 'units'], ['units', 'lesson', 'lessons']/*, ['lessons', 'steps', 'steps']*/], 0, promises, this.$onLoaded);
           
         });
         
         this.needUpdate = false;
         this.setLastUpdated();
+      } else {
+        this.$onLoaded();
       }
+    }
+    
+    $onLoaded() {
+      this.$scope.workload = this.getHoursPerWeek();
     }
     
     getCourses() {
@@ -226,6 +235,49 @@
         return {soft:null, hard:hard[0]};
       }
       return {soft:null, hard:null};
+    }
+    
+    getHoursPerWeek() {
+      var courses = this.db.courses().get();
+      console.log(courses);
+      
+      var parseWorkload = (w) => {
+        var match = w.match(/.*?([0-9]+)(\s*[-–]\s*)?([0-9]+)?.*?/);
+        
+        if (!match) {
+          return [5, 6]; // default workload
+        }
+        
+        var from = parseInt(match[1]), to = parseInt(match[3]) ? parseInt(match[3]) : from;
+        
+        if( w.indexOf("мин") >= 0 || w.indexOf("min") >= 0 ) {
+          from /= 60;
+          to /= 60;
+        }
+        
+        return [from, to];
+      };
+      
+      var from = 0, to = 0;
+      var uFrom = 0, uTo = 0;
+      
+      courses.forEach(course => {
+        let w = parseWorkload(course.workload);
+        
+        from += w[0];
+        to += w[1];
+        
+        let deadlines = this.getNextDeadlines(course);
+        if (deadlines.soft || deadlines.hard) {
+          uFrom += w[0];
+          uTo += w[1];
+        }
+      });
+      
+      return {
+        all: [from, to],
+        urgent: [uFrom, uTo]
+      };
     }
     
     
@@ -333,10 +385,13 @@
               scope.deadlines = scope.$eval(attrs.deadlines);
             },
             template: 
-              '<div ng-if="deadlines.soft"><h5>soft: {{ deadlines.soft.title }}</h5><p><span countdown="deadlines.soft.soft_deadline"></span></p></dev>' +
-              '<div ng-if="deadlines.hard"><h5>hard: {{ deadlines.hard.title }}</h5><p><span countdown="deadlines.hard.hard_deadline"></span></p></dev>'
+              '<div class="row">' +
+              '<div class="col-md-6" ng-if="deadlines.soft"><h5>Next soft deadline:<br/><b>{{ deadlines.soft.title }}</b><br/>[{{ deadlines.soft.soft_deadline | date }}]</h5><p><span countdown="deadlines.soft.soft_deadline"></span></p></div>' +
+              '<div class="col-md-6" ng-if="deadlines.hard"><h5>Next hard deadline:<br/><b>{{ deadlines.hard.title }}</b><br/>[{{ deadlines.soft.hard_deadline | date }}]</h5><p><span countdown="deadlines.hard.hard_deadline"></span></p></div>' +
+              '</div>'
         }
     })
+    
   ;
 
 })(window.angular, window.TAFFY);

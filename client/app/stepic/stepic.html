@@ -12,7 +12,9 @@
                             </a>
                         </div>
                         <div class="media-body">
-                            <h4 class="media-heading">{{ course.title }}</h4>
+                            <h4 class="media-heading">
+                                <a target="_blank" ng-href="https://stepic.org/course/{{ course.slug }}/syllabus">{{ course.title }}</a>
+                            </h4>
                             <p>{{ course.workload }}</p>
                             <p>{{ course.begin_date | date }}</p>
                             <p>{{ course.end_date | date }}</p>

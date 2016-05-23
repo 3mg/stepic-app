@@ -316,10 +316,12 @@
               
               date = moment(date);
               
-              $interval(() => {
-                var diff = moment(date.diff(moment())).format('D \\d\\a\\y\\s, H \\hour\\s, mm : ss');
+              let f = () => {
+                var diff = moment(date.diff(moment())).format('D \\d, H \\h, m \\m');
                 element.html(diff);
-              }, 1000);
+              };
+              f();
+              $interval(f, 60000);
             }
         }
     })

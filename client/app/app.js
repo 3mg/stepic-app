@@ -12,7 +12,8 @@ angular.module('myAppApp', [
   'ui.bootstrap',
   'ui.bootstrap.affix',
   'validation.match',
-  'swagger-client'
+  'swagger-client',
+  'angularMoment'
 ])
   .config(function($urlRouterProvider, $locationProvider) {
     $urlRouterProvider

@@ -17,10 +17,12 @@
                             <p>{{ course.begin_date | date }}</p>
                             <p>{{ course.end_date | date }}</p>
                             
+                            <div deadlines="$ctrl.getNextDeadlines(course)"></div>
+
                             <a ng-click="course.showCode = !course.showCode">code</a>
                             <pre ng-if="course.showCode">{{ course | json }}</pre>
-                            
-                            
+
+
                             <a ng-click="course.showSections = !course.showSections">sections</a>
                             <div class="list-group" ng-if="course.showSections">
                                 <div class="list-group-item" ng-repeat="section in $ctrl.getSections(course) track by $index">
@@ -29,28 +31,49 @@
                                         <a ng-click="section.showCode = !section.showCode">code</a>
                                         <pre ng-if="section.showCode">{{ section | json }}</pre>
                                     </p>
+                                    
+                                    <p>{{ section.soft_deadline | date }}</p>
+                                    <p>{{ section.hard_deadline | date }}</p>
+                                    
+                                    <p><span countdown="section.soft_deadline"></span></p>
+                                    <p><span countdown="section.hard_deadline"></span></p>
+                                    
                                     <p>
-                                        
-                                        
+
+
                                         <a ng-click="section.showUnits = !section.showUnits">units</a>
                                         <div class="list-group" ng-if="section.showUnits">
                                             <div class="list-group-item" ng-repeat="unit in $ctrl.getUnits(section) track by $index">
                                                 <h4>{{ unit.title }}</h4>
                                                 <p>
-                                                    <a ng-click="unit.showCode = !unit.showCode">code</a>
+                                                    <a ng-click="unit.showCode = !unit.showCode">code</a> - <a ng-click="unit.showLessonCode = !unit.showLessonCode">lesson code</a>
                                                     <pre ng-if="unit.showCode">{{ unit | json }}</pre>
+                                                    <pre ng-if="unit.showLessonCode">{{ $ctrl.getLesson(unit) | json }}</pre>
                                                 </p>
                                                 <p>
-                                                    
+
+                                                    <div lesson="$ctrl.getLesson(unit)" class="media">
+                                                        <div class="media-left">
+                                                            <a href="#" class="course-thumbnail">
+                                                                <img class="media-object thumbnail" ng-src="{{ lesson.cover_url }}" alt="{{ lesson.title }}">
+                                                            </a>
+                                                        </div>
+                                                        <div class="media-body">
+                                                            <h4 class="media-heading">{{ lesson.title }}</h4>
+                                                            <p>{{ lesson.time_to_complete }}</p>
+                                                            <p>{{ unit.soft_deadline | date }}</p>
+                                                            <p>{{ unit.hard_deadline | date }}</p>
+                                                        </div>
+                                                    </div>
+
                                                 </p>
                                             </div>
                                         </div>
-                                        
-                                        
+
                                     </p>
                                 </div>
                             </div>
-                            
+
                         </div>
                     </li>
                 </ul>
@@ -73,8 +96,7 @@
                             </p>
                             <p>
                                 <button class="btn btn-default" ng-click="$ctrl.refreshDB()">
-                                    <span class="glyphicon glyphicon-refresh"></span>
-                                    Refresh
+                                    <span class="glyphicon glyphicon-refresh"></span> Refresh
                                 </button>
                             </p>
                         </div>

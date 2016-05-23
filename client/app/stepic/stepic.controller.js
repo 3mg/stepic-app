@@ -1,4 +1,6 @@
 'use strict';
+/*global localStorage*/
+/*global moment*/
 (function(angular, TAFFY) {
 
   class StepicComponent {
@@ -14,6 +16,8 @@
       this.swaggerClient = swaggerClient;
       this.$cookies = $cookies;
       
+      this.needUpdate = false;
+      
       this.db = {
         'courses': TAFFY(),
         'sections': TAFFY(),
@@ -28,29 +32,25 @@
       
       this.sections = {};
     }
+    
+    getLastUpdated() {
+      var lastUpdated = localStorage.getItem('stepic_last_updated');
+      if(!lastUpdated) {
+        return null;
+      }
+      return new Date(parseInt(lastUpdated));
+    }
+    
+    setLastUpdated() {
+      localStorage.setItem('stepic_last_updated', +new Date);
+    }
 
     $onInit() {
       window.$ctrl = this;
       
-      /*this.$http.get('https://stepic.org/api/docs/api-docs/').then(response => {
-        this.schema = response.data;
-        
-        var promises = [];
-        
-        this.schema.apis.forEach(api => {
-          let path = api.path;
-          promises.push(
-            this.$http.get('https://stepic.org/api/docs/api-docs/'+path.split('/')[2]).then(response => {
-              api.apiDeclaration = response.data;
-            })
-          );
-        });
-        
-        this.$q.all(promises).finally((values) => {
-          this.schemaInitialized();
-        });
-      });*/
-
+      let ONE_HOUR = 60 * 60 * 1000;
+      this.needUpdate = this.getLastUpdated() < (new Date() - ONE_HOUR * 10);
+      
       this.$http.get('/assets/json/stepic.json').then(response => {
         this._schema = response.data;
         angular.copy(response.data, this.schema);
@@ -106,16 +106,17 @@
       for (let key in this.db) {
         this.db[key]().remove();
       }
+      this.needUpdate = true;
     }
     
     refreshDB() {
-      this.resetDB();
-      this.initDB();
+      this.$scope.$applyAsync(() => {
+        this.resetDB();
+        this.initDB();
+      });
     }
     
     initDB() {
-      let needUpdate = false;
-      
       for (let key in this.db) {
         let res = this.db[key].store(this.db_name + '_' + key);
         if (false === res) {
@@ -123,7 +124,7 @@
         }
       }
       
-      if (needUpdate) {
+      if (this.needUpdate) {
         this.resetDB();
         
         this.loadCourses()
@@ -142,33 +143,55 @@
           
           var capitalize = (s) => s.charAt(0).toUpperCase() + s.slice(1);
           
-          [['sections', 'units'], ['units', 'lessons'], ['lessons', 'steps']].forEach(a => {
-            var entityName = a[0], relationName = a[1];
+          let load = (list, i, promises) => {
+            if (i >= list.length) return;
+            
+            var 
+              entityName = list[i][0], 
+              relationName = list[i][1],
+              dbName = list[i][2];
             
             var nextPromises = [];
-            var entities = this.db[entityName]().get();
             
             this.$q.all(promises)
             .then(() => {
-              entities.foreach(entity => {
+              let entities = this.db[entityName]().get();
+            
+              entities.forEach(entity => {
                 let promise = this['load' + capitalize(relationName)](entity)
                 .then(relations => {
-                  this.db[relationName].insert(relations);
+                  this.db[dbName].insert(relations);
                 });
                 nextPromises.push(promise);
               });
+              
+              load(list, i + 1, nextPromises);
+            }, function() {
+              console.log(arguments);
             });
-            
-            promises = nextPromises;
-          });
+          };
+          
+          load([['sections', 'units', 'units'], ['units', 'lesson', 'lessons']/*, ['lessons', 'steps', 'steps']*/], 0, promises);
           
         });
         
+        this.needUpdate = false;
+        this.setLastUpdated();
       }
     }
     
     getCourses() {
-      return this.db.courses().get();
+      var courses = this.db.courses().get();
+      var self = this;
+      
+      return _.sortBy(courses, function(course) { 
+        let deadlines = self.getNextDeadlines(course);
+        
+        let s = deadlines.soft ? +moment(deadlines.soft) : Infinity;
+        let h = deadlines.hard ? +moment(deadlines.hard) : Infinity;
+        
+        return Math.min(s, h); 
+      });
     }
     
     getSections(course) {
@@ -179,12 +202,30 @@
       return this.db.units({section: section.id}).get();
     }
     
-    getLessons(unit) {
-      return this.db.lessoms({unit: unit.id}).get();
+    getLesson(unit) {
+      return this.db.lessons({id: unit.lesson}).get()[0];
     }
     
     getSteps(lesson) {
       return this.db.steps({lesson: lesson.id}).get();
+    }
+    
+    
+    getNextDeadlines(course) {
+      let soft = this.db.sections({course: course.id}, function () {
+        return moment(this.soft_deadline) > moment(); 
+      }).order('soft_deadline asec').get();
+      
+      let hard = this.db.sections({course: course.id}, function () {
+        return moment(this.hard_deadline) > moment(); 
+      }).order('hard_deadline asec').get();
+      
+      if (soft.length > 0 && hard.length > 0) {
+        return {soft:soft[0], hard:hard[0]};
+      } else if (hard.length > 0) {
+        return {soft:null, hard:hard[0]};
+      }
+      return {soft:null, hard:null};
     }
     
     
@@ -243,8 +284,8 @@
       return this.$loadRelations(this.api.apiUnits.Unit_retrieve, section, 'units');
     }
     
-    loadLessons(unit) {
-      return this.$loadRelations(this.api.apiLessons.Lesson_retrieve, unit, 'lessons');
+    loadLesson(unit) {
+      return this.$loadEntities(this.api.apiLessons.Lesson_retrieve, 'lessons', { pk: unit.lesson.toString() });
     }
     
     loadSteps(lesson) {
@@ -256,6 +297,44 @@
     .component('stepic', {
       templateUrl: 'app/stepic/stepic.html',
       controller: StepicComponent
-    });
+    })
+    .directive('lesson', function() {
+        return {
+            restrict: "A",
+            link: function (scope, element, attrs, controller) {
+              scope.lesson = scope.$eval(attrs.lesson);
+            }
+        }
+    })
+    .directive('countdown', function($interval) {
+        return {
+            restrict: "A",
+            link: function (scope, element, attrs, controller) {
+              var date = scope.$eval(attrs.countdown);
+              
+              if (!date) return;
+              
+              date = moment(date);
+              
+              $interval(() => {
+                var diff = moment(date.diff(moment())).format('D \\d\\a\\y\\s, H \\hour\\s, mm : ss');
+                element.html(diff);
+              }, 1000);
+            }
+        }
+    })
+    .directive('deadlines', function() {
+        return {
+            restrict: "A",
+            scope: true,
+            link: function (scope, element, attrs, controller) {
+              scope.deadlines = scope.$eval(attrs.deadlines);
+            },
+            template: 
+              '<div ng-if="deadlines.soft"><h5>soft: {{ deadlines.soft.title }}</h5><p><span countdown="deadlines.soft.soft_deadline"></span></p></dev>' +
+              '<div ng-if="deadlines.hard"><h5>hard: {{ deadlines.hard.title }}</h5><p><span countdown="deadlines.hard.hard_deadline"></span></p></dev>'
+        }
+    })
+  ;
 
 })(window.angular, window.TAFFY);

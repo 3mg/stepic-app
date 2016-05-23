@@ -7,6 +7,15 @@
     }
 }
 
+.lesson-thumbnail {
+    $lesson_thumbnail_width: 80px;
+    display: block;
+    width: $lesson_thumbnail_width;
+    img {
+        max-width: $lesson_thumbnail_width;
+    }
+}
+
 a {
     cursor: pointer;
 }

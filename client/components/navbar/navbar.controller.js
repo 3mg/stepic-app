@@ -2,10 +2,10 @@
 
 class NavbarController {
   //start-non-standard
-  menu = [{
+  menu = [/*{
     'title': 'Home',
     'state': 'main'
-  }, {
+  }, */{
     'title': 'Stepic',
     'state': 'stepic'
   }];
@@ -13,11 +13,11 @@ class NavbarController {
   isCollapsed = true;
   //end-non-standard
 
-  constructor(Auth) {
+  /*constructor(Auth) {
     this.isLoggedIn = Auth.isLoggedIn;
     this.isAdmin = Auth.isAdmin;
     this.getCurrentUser = Auth.getCurrentUser;
-  }
+  }*/
 }
 
 angular.module('myAppApp')

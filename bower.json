@@ -18,7 +18,8 @@
     "angular-ui-router": "~0.2.15",
     "angular-validation-match": "~1.5.2",
     "swagger-angular-client": "git@github.com:mchlbrnd/swagger-angular-client.git#d36168936eebdc6bc406f3766b5d1b80eca8b638",
-    "angular-moment": "^0.10.3"
+    "angular-moment": "^0.10.3",
+    "taffy": "*"
   },
   "devDependencies": {
     "angular-mocks": "~1.5.0"

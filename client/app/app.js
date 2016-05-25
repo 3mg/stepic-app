@@ -1,13 +1,13 @@
 'use strict';
 
 angular.module('myAppApp', [
-  'myAppApp.auth',
-  'myAppApp.admin',
+  //'myAppApp.auth',
+  //'myAppApp.admin',
   'myAppApp.constants',
   'ngCookies',
   'ngResource',
   'ngSanitize',
-  'btford.socket-io',
+  //'btford.socket-io',
   'ui.router',
   'ui.bootstrap',
   'ui.bootstrap.affix',
@@ -17,7 +17,7 @@ angular.module('myAppApp', [
 ])
   .config(function($urlRouterProvider, $locationProvider) {
     $urlRouterProvider
-      .otherwise('/');
+      .otherwise('/stepic');
 
     $locationProvider.html5Mode(true);
   });

@@ -678,3 +678,38 @@ gulp.task('buildcontrol:openshift', function(done) {
         function() {done();}
     );
 });
+
+
+var surge = require('gulp-surge');
+
+
+gulp.task('deploy:surge', cb => {
+    runSequence(
+        'build',
+        '__surge',
+        cb);
+});
+
+gulp.task('__surge', [], function () {
+    /*gulp.src([
+        clientPath + '/!**',                         // Include all
+        '!' + clientPath + '/app/!**',               // Exclude app dir
+        '!' + clientPath + '/components/!**'    // Exclude components dir
+    ]).pipe(gulp.dest('./dist/client/'));*/
+
+    gulp.src([
+        clientPath + '/bower_components/bootstrap-sass-official/assets/**',
+    ]).pipe(gulp.dest('./dist/client/bower_components/bootstrap-sass-official/assets/'));
+
+    gulp.src(clientPath + '/.surgeignore', {'dot': true})
+        .pipe(gulp.dest('./dist/client/'));
+
+    gulp.src('./dist/client/index.html')
+        .pipe(plugins.rename('200.html'))
+        .pipe(gulp.dest('./dist/client/'));
+
+    return surge({
+        project: paths.dist + '/client',         // Path to your static build directory
+        domain: 'stepic-schedule.surge.sh'  // Your domain or Surge subdomain
+    })
+});

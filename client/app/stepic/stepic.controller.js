@@ -88,7 +88,7 @@
         data: {
           'grant_type': 'client_credentials'
         }
-      }
+      };
       return this.$http(req).then(response => {
         this.token = response.data;
         this.api.auth(this.token.access_token);
@@ -204,11 +204,11 @@
     }
     
     getSections(course) {
-      return this.db.sections({course: course.id}).get();
+      return this.db.sections({course: course.id}).order('position asec').get();
     }
     
     getUnits(section) {
-      return this.db.units({section: section.id}).get();
+      return this.db.units({section: section.id}).order('position asec').get();
     }
     
     getLesson(unit) {
@@ -239,7 +239,7 @@
     
     getHoursPerWeek() {
       var courses = this.db.courses().get();
-      console.log(courses);
+      //console.log(courses);
       
       var parseWorkload = (w) => {
         var match = w.match(/.*?([0-9]+)(\s*[-–]\s*)?([0-9]+)?.*?/);
@@ -362,14 +362,26 @@
         return {
             restrict: "A",
             link: function (scope, element, attrs, controller) {
-              var date = scope.$eval(attrs.countdown);
+              var date = scope.$eval(attrs.countdown), now, diff;
               
               if (!date) return;
               
-              date = moment(date);
+              date = +moment(date);
               
               let f = () => {
-                var diff = moment(date.diff(moment())).format('D \\d, H \\h, m \\m');
+                now = +new Date();
+                diff = Math.floor( (date - now) / 1000 ); // in seconds
+
+                var dSeconds = 60 * 60 * 24, hSeconds = 3600;
+
+                var days = Math.floor(diff / dSeconds),
+                    hours = Math.floor( (diff - days * dSeconds) / hSeconds ),
+                    minutes = Math.floor( (diff - days * dSeconds - hours * hSeconds) / 60 );
+
+                // var diff = moment.(date.diff(moment())).format('D \\d, H \\h, m \\m');
+
+                var diff = `${days} d, ${hours} h, ${minutes} m`;
+
                 element.html(diff);
               };
               f();
